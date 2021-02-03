@@ -5,9 +5,8 @@ import kotlin.system.exitProcess
 
 fun main() {
     print("How many mines do you want on the field? ")
-    val mineField = MineField(9, 9)
     val numMines = readLine()!!.toInt()
-
+    val mineField = MineField(9, 9)
     mineField.placeMines(numMines)
     mineField.printField()
     println()
@@ -69,11 +68,14 @@ class MineField(private val rows: Int, private val columns: Int) {
     }
 
     fun placeMines(numMines: Int) {
-        var mines = 0 // Number of mines placed on the field
-        while (numMines != mines) {
-            val mineRow = Random.nextInt(rows)
-            val mineCol = Random.nextInt(columns)
-            mines += placeMine(mineRow, mineCol)
+        var placedMines = 0
+        while (numMines != placedMines) {
+            val i = Random.nextInt(rows)
+            val j = Random.nextInt(columns)
+            if (Pair(i, j) !in mines) {
+                mines.add(Pair(i, j))
+                placedMines++
+            }
         }
     }
 
@@ -91,7 +93,15 @@ class MineField(private val rows: Int, private val columns: Int) {
     fun free(i: Int, j: Int) {
         val indices = Pair(i, j)
         when {
-            indices in mines -> fail()
+            indices in mines -> {
+                if (allUnexplored()) {
+                    mines.remove(indices)
+                    placeMines(1)
+                    free(i, j)
+                    return
+                }
+                fail()
+            }
             field[i][j] == '.' -> freeCell(i, j)
             else -> {
                 println("Cell is already free")
@@ -148,14 +158,7 @@ class MineField(private val rows: Int, private val columns: Int) {
         return result
     }
 
-    private fun placeMine(i: Int, j: Int): Int {
-        if (Pair(i, j) !in mines) {
-            mines.add(Pair(i, j))
-            return 1
-        }
-        return 0
-    }
-
+    // Check if all field other then the mines is explored
     private fun allExplored(): Boolean {
         for ((i, row) in field.withIndex())
             for((j, cell) in row.withIndex())
@@ -163,6 +166,9 @@ class MineField(private val rows: Int, private val columns: Int) {
                     return false
         return true
     }
+
+    // Check if the field is untouched
+    private fun allUnexplored() = field.all { row -> row.all { it == '.'}}
 
     private fun allMinesMarked(): Boolean {
         for ((i, row) in field.withIndex())
