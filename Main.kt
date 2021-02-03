@@ -30,6 +30,7 @@ fun main() {
 class MineField(private val rows: Int, private val columns: Int) {
     private val field = Array(rows) { CharArray(columns) { '.' } }
     private val userMarks = mutableListOf<Pair<Int, Int>>()
+    private val mines = mutableListOf<Pair<Int, Int>>()
 
     override fun toString(): String {
         var str = " |"
@@ -43,7 +44,6 @@ class MineField(private val rows: Int, private val columns: Int) {
             for (j in 1..columns) {
                 str += when {
                     Pair(i - 1, j - 1) in userMarks -> '*'
-                    field[i - 1][j - 1] == 'X' -> '.'
                     else -> field[i - 1][j - 1]
                 }
             }
@@ -76,41 +76,43 @@ class MineField(private val rows: Int, private val columns: Int) {
         return true
     }
 
-    private fun isMine(i: Int, j: Int) = field[i][j] == 'X'
-
     private fun placeMine(i: Int, j: Int): Int {
-        if (!isMine(i, j)) {
-            if (i != 0) {
-                incrementCell(i - 1, j)
-                if (j != 0) incrementCell(i - 1, j - 1)
-                if (j != columns - 1) incrementCell(i - 1, j + 1)
-            }
-            if (i != rows - 1) {
-                incrementCell(i + 1, j)
-                if (j != 0) incrementCell(i + 1, j - 1)
-                if (j != columns - 1) incrementCell(i + 1, j + 1)
-            }
-            if (j != 0) incrementCell(i, j - 1)
-            if (j != columns - 1) incrementCell(i, j + 1)
-            field[i][j] = 'X'
+        if (Pair(i, j) !in mines) {
+            mines.add(Pair(i, j))
             return 1
         }
         return 0
     }
 
+    private fun countNeighbourMines(i: Int, j: Int) {
+        if (i != 0) {
+            incrementCell(i - 1, j)
+            if (j != 0) incrementCell(i - 1, j - 1)
+            if (j != columns - 1) incrementCell(i - 1, j + 1)
+        }
+        if (i != rows - 1) {
+            incrementCell(i + 1, j)
+            if (j != 0) incrementCell(i + 1, j - 1)
+            if (j != columns - 1) incrementCell(i + 1, j + 1)
+        }
+        if (j != 0) incrementCell(i, j - 1)
+        if (j != columns - 1) incrementCell(i, j + 1)
+    }
+
     // Increase the neighbour count of the cell
     private fun incrementCell(i: Int, j: Int) {
         if (field[i][j].isDigit()) field[i][j] = (field[i][j].toInt() + 1).toChar()
-        else if (field[i][j] != 'X') field[i][j] = '1'
+        else if (Pair(i, j) in mines) field[i][j] = '1'
     }
 
     fun isWin(): Boolean {
         for ((i, row) in field.withIndex())
-            for ((j, cell) in row.withIndex())
-                if (cell == 'X' && Pair(i, j) !in userMarks)
+            for (j in row.indices) {
+                val indices = Pair(i, j)
+                if (indices in mines && indices !in userMarks ||
+                    indices !in mines && indices in userMarks)
                     return false
-        for ((i, j) in userMarks)
-            if (field[i][j] != 'X') return false
+            }
         return true
     }
 }
